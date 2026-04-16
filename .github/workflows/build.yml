@@ -1,0 +1,54 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version string for the artifact'
+        required: false
+        type: string
+        default: ''
+      is_release:
+        description: 'Whether this is a release build'
+        required: false
+        type: boolean
+        default: false
+      ref:
+        description: 'Git ref to checkout (defaults to triggering ref)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  build:
+    name: Build artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ inputs.ref || '' }}
+
+      - name: Build shell script artifact
+        env:
+          VERSION: ${{ inputs.version || github.ref_name }}
+          IS_RELEASE: ${{ inputs.is_release }}
+        run: |
+          mkdir -p bin
+          cat > bin/hello.sh <<SCRIPT
+          #!/usr/bin/env bash
+          echo "Hello from testing-immutable-releases ${VERSION}"
+          echo "Built at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Commit: $(git rev-parse HEAD)"
+          echo "Is release: ${IS_RELEASE}"
+          SCRIPT
+          chmod +x bin/hello.sh
+          echo "Built bin/hello.sh for version ${VERSION}"
+          cat bin/hello.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: hello-script
+          path: bin/hello.sh
+          if-no-files-found: error
