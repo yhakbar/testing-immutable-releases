@@ -14,8 +14,12 @@ function main {
   : "${GH_TOKEN:?ERROR: GH_TOKEN is a required environment variable}"
   : "${GITHUB_OUTPUT:?ERROR: GITHUB_OUTPUT is a required environment variable}"
 
-  # Check if release exists using gh CLI (only care about exit code)
-  if ! gh release view "$VERSION" > /dev/null 2>&1; then
+  # Look up release via REST API (gh release view cannot find drafts).
+  local release_json
+  release_json=$(gh api repos/{owner}/{repo}/releases \
+    --jq ".[] | select(.tag_name == \"$VERSION\")")
+
+  if [[ -z "$release_json" ]]; then
     printf 'exists=false\n' >> "$GITHUB_OUTPUT"
     printf 'is_draft=false\n' >> "$GITHUB_OUTPUT"
     printf 'is_published=false\n' >> "$GITHUB_OUTPUT"
@@ -24,18 +28,14 @@ function main {
     return 0
   fi
 
-  # Get release details
-  local release_json
-  release_json=$(gh release view "$VERSION" --json 'id,uploadUrl,isDraft')
-
   local release_id
   local upload_url
   local is_draft
   local is_published
 
   release_id=$(jq -r '.id' <<< "$release_json")
-  upload_url=$(jq -r '.uploadUrl' <<< "$release_json")
-  is_draft=$(jq -r '.isDraft' <<< "$release_json")
+  upload_url=$(jq -r '.upload_url' <<< "$release_json")
+  is_draft=$(jq -r '.draft' <<< "$release_json")
 
   if [[ "$is_draft" == "true" ]]; then
     is_published="false"

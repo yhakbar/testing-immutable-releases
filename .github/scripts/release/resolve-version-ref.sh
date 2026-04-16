@@ -31,21 +31,26 @@ function main {
 
     version="$INPUT_VERSION"
 
-    # Look up the release to get target_commitish
+    # Look up the release to get target_commitish.
+    # NOTE: gh release view does not find draft releases (no git tag yet),
+    # so we use the REST API and filter by tag_name.
     local release_json
-    if ! release_json=$(gh release view "$version" --json 'isDraft,targetCommitish' 2>/dev/null); then
+    release_json=$(gh api repos/{owner}/{repo}/releases \
+      --jq ".[] | select(.tag_name == \"$version\")")
+
+    if [[ -z "$release_json" ]]; then
       echo "ERROR: No release found for version $version" >&2
       exit 1
     fi
 
     local is_draft
-    is_draft=$(jq -r '.isDraft' <<<"$release_json")
+    is_draft=$(jq -r '.draft' <<<"$release_json")
     if [[ "$is_draft" != "true" ]]; then
       echo "ERROR: Release $version is already published. Cannot rebuild a published release." >&2
       exit 1
     fi
 
-    ref=$(jq -r '.targetCommitish' <<<"$release_json")
+    ref=$(jq -r '.target_commitish' <<<"$release_json")
   else
     : "${RELEASE_TAG_NAME:?ERROR: RELEASE_TAG_NAME is required for release events}"
     : "${RELEASE_TARGET:?ERROR: RELEASE_TARGET is required for release events}"
