@@ -12,10 +12,10 @@ set -euo pipefail
 # Rejected formats:
 #   alpha2025031301, 1.0.0 (no prefix), v1 (incomplete)
 
-# Strict semver regex with required 'v' prefix:
-#   v<major>.<minor>.<patch>[-<pre-release>]
-# Pre-release identifiers are dot-separated alphanumeric strings.
-SEMVER_RE='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*)?$'
+# Semver 2.0.0 regex with required 'v' prefix:
+#   v<major>.<minor>.<patch>[-<pre-release>][+<build>]
+# Pre-release and build identifiers are dot-separated, [0-9A-Za-z-].
+SEMVER_RE='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
 
 function validate_semver {
   local -r version="$1"

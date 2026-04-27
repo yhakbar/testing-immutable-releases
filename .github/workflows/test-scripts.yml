@@ -1,0 +1,31 @@
+name: Test Release Scripts
+
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/release/**'
+      - '.github/workflows/test-scripts.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/release/**'
+      - '.github/workflows/test-scripts.yml'
+
+jobs:
+  bats:
+    name: Run bats tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install bats and shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats shellcheck jq
+
+      - name: shellcheck release scripts
+        run: shellcheck --severity=error .github/scripts/release/*.sh .github/scripts/release/tests/helpers/*.sh
+
+      - name: Run bats tests
+        run: bats --print-output-on-failure .github/scripts/release/tests/
